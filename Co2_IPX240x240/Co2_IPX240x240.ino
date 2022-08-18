@@ -1,0 +1,320 @@
+// sensor MQ 135
+// Juan Jose Boulosa 3-12-20
+
+/*Hasta 350 ppm: calidad de aire interior alta
+Entre 350 y 500 ppm: calidad de aire interior buena
+Entre 500 y 800 ppm: calidad de aire interior moderada
+Entre 800 y 1200 ppm: calidad de aire interior baja
+Nivel superior a 1200 ppm: calidad de aire interior mala
+
+ */
+
+// ST7789 library example
+// (c) 2019 Pawel A. Hernik
+
+/*
+ ST7789 240x240 IPS (without CS pin) connections (only 6 wires required):
+
+ #01 GND -> GND
+ #02 VCC -> VCC (3.3V only!)
+ #03 SCL -> D13/SCK
+ #04 SDA -> D11/MOSI
+ #05 RES -> D8 or any digital
+ #06 DC  -> D7 or any digital
+ #07 BLK -> NC
+*/
+
+
+
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BMP085_U.h>
+
+ /* Connections
+   ===========
+   Connect SCL to analog 5
+   Connect SDA to analog 4
+   Connect VDD to 3.3V DC
+   Connect GROUND to common ground
+    
+   History
+   =======
+   2013/JUN/17  - Updated altitude calculations (KTOWN)
+   2013/FEB/13  - First version (KTOWN)
+*/
+
+
+//#define TFT_CS    6
+#define TFT_DC    7
+#define TFT_RST   8 
+#define SCR_WD   240
+#define SCR_HT   240   // 320 - to allow access to full 240x320 frame buffer
+#include <SPI.h>
+#include <Adafruit_GFX.h>
+#include <Arduino_ST7789_Fast.h>
+Arduino_ST7789 lcd = Arduino_ST7789(TFT_DC, TFT_RST);
+
+Adafruit_BMP085_Unified bmp = Adafruit_BMP085_Unified(10085);
+ 
+#define SensorMQ135 (0)// entrada A0 arduino
+int DatosMQ;
+int LectuAnterMax;
+int LectuAnterMin;
+int buzzer = 5;
+int led = 3;
+
+void setup() {
+  pinMode(buzzer, OUTPUT);
+  pinMode(led, OUTPUT);
+  
+Serial.begin (9600);
+LectuAnterMin=222;  // minimo para comienzo de la serie
+
+lcd.init(SCR_WD, SCR_HT);
+ lcd.fillScreen(BLACK); 
+    lcd.cls(); 
+
+  digitalWrite(led, LOW);
+digitalWrite(buzzer, LOW);  
+
+ Serial.println("Pressure Sensor Test"); Serial.println("");
+  
+  /* Initialise the sensor */
+  if(!bmp.begin())
+  {
+    /* There was a problem detecting the BMP085 ... check your connections */
+    Serial.print("Ooops, no BMP085 detected ... Check your wiring or I2C ADDR!");
+    while(1);
+  }
+  
+  /* Display some basic information on this sensor */
+  //displaySensorDetails();
+
+
+}
+
+void loop() {
+  //DatosMQ=analogRead(SensorMQ135);
+  DatosMQ=3180;   // VALORES DE PRUEBA MANUAL
+
+
+Serial.print(DatosMQ,DEC);
+Serial.println("ppm de CO2");//  ppm partes por millon
+if (DatosMQ > LectuAnterMax){
+  LectuAnterMax =DatosMQ;
+  }
+if (DatosMQ < LectuAnterMin){
+  LectuAnterMin =DatosMQ;
+
+}
+
+Serial.print("MAx  ");
+Serial.print(LectuAnterMax,DEC);
+Serial.print("  MIn");
+Serial.println(LectuAnterMin,DEC);
+Serial.println(DatosMQ,DEC);  //monitor ploter salela println ultima
+
+
+  lcd.setCursor(10, 20);
+  if (DatosMQ <350 & DatosMQ>0) {
+  lcd.setTextColor(BLUE,BLACK);
+  }
+  if (DatosMQ >=350& DatosMQ<500){
+     lcd.setTextColor(GREEN,BLACK);
+  }
+  if (DatosMQ >=500& DatosMQ<800){
+     lcd.setTextColor(YELLOW,BLACK);
+  } 
+if (DatosMQ >=800 & DatosMQ<1200){
+ 
+    lcd.setTextColor(RED,BLACK);
+}
+   if (DatosMQ >=1200){
+    lcd.setTextColor(RED,BLACK);
+   }
+  lcd.setTextSize(5);
+   lcd.print(DatosMQ,DEC);
+   lcd.setTextSize(3);
+  lcd.println(" PPM");
+
+
+  lcd.setCursor(1, 90);
+  lcd.setTextColor(YELLOW,BLACK);
+  lcd.setTextSize(3);
+  lcd.print("MAx=");
+  lcd.print(LectuAnterMax,DEC);
+  
+  lcd.setCursor(1, 115);
+  lcd.print("MIn=");
+  lcd.print(LectuAnterMin,DEC);
+  
+/*Hasta 350 ppm: calidad de aire interior alta
+Entre 350 y 500 ppm: calidad de aire interior buena
+Entre 500 y 800 ppm: calidad de aire interior moderada
+Entre 800 y 1200 ppm: calidad de aire interior baja
+Nivel superior a 1200 ppm: calidad de aire interior mala
+
+ */
+
+ lcd.setCursor(1, 150);
+  lcd.setTextColor(GREEN,BLACK);
+  lcd.setTextSize(2);
+  lcd.print("  Calidad del Aire ");
+  
+if (DatosMQ <350 & DatosMQ>0) {
+  lcd.setCursor(1, 180);
+    lcd.setTextColor(BLUE,BLACK);
+  lcd.setTextSize(4);
+ 
+  lcd.print("EXCELENTE");
+lcd.setTextSize(3);
+
+  
+}
+  if (DatosMQ >=350& DatosMQ<500){
+  lcd.setCursor(1, 180);
+    lcd.setTextColor(GREEN,BLACK);
+  lcd.setTextSize(5);
+  lcd.print(" BUENA  ");
+ 
+  }
+if (DatosMQ >=500& DatosMQ<800){
+   lcd.setCursor(0, 180);
+    lcd.setTextColor(YELLOW,BLACK);
+  lcd.setTextSize(5);
+  lcd.print("MODERADA");
+   lcd.setTextSize(3);
+  lcd.print("  VENTILAR");
+}
+ if (DatosMQ >=800 & DatosMQ<1200){
+       
+  lcd.setCursor(1, 180);
+    lcd.setTextColor(RED,BLACK);
+  lcd.setTextSize(5);
+  lcd.print("PELIGRO");
+  lcd.setTextSize(3);
+  lcd.setTextColor(YELLOW,BLACK);
+  lcd.print("  VENTILAR");
+  digitalWrite(led, HIGH);
+   
+    digitalWrite(buzzer, HIGH);
+    delay(300);
+    digitalWrite(buzzer, LOW);
+    digitalWrite(led, LOW);
+    delay(200);
+    digitalWrite(buzzer, HIGH);
+    digitalWrite(led, HIGH);
+    delay(300);
+    digitalWrite(buzzer, LOW);
+    delay(200);
+    digitalWrite(buzzer, HIGH);
+    digitalWrite(led, HIGH);
+    delay(300);
+    digitalWrite(buzzer, LOW);
+    digitalWrite(led, LOW);
+   
+    digitalWrite(buzzer, HIGH);
+    delay(300);
+    digitalWrite(buzzer, LOW);
+    delay(200);
+    digitalWrite(buzzer, HIGH);
+    digitalWrite(led, HIGH);
+    delay(300);
+    digitalWrite(buzzer, LOW);
+    digitalWrite(led, LOW);
+    delay(200);
+    digitalWrite(buzzer, HIGH);
+    delay(300);
+    digitalWrite(buzzer, LOW);
+   }
+   if (DatosMQ >=1200){
+    
+   lcd.setCursor(1, 180);
+    lcd.setTextColor(RED,BLACK);
+  lcd.setTextSize(5);
+  lcd.print(" ALARMA");
+  lcd.setTextSize(3);
+  lcd.setTextColor(YELLOW,BLACK);
+ lcd.setCursor(1, 220);
+  lcd.print("   HUYAN YA ");
+  digitalWrite(led, HIGH);   
+    digitalWrite(buzzer, HIGH);
+    delay(300);
+    digitalWrite(buzzer, LOW);
+    digitalWrite(led, LOW);
+    delay(200);
+    digitalWrite(buzzer, HIGH);
+    digitalWrite(led, HIGH);
+    delay(300);
+    digitalWrite(buzzer, LOW);
+    delay(200);
+    digitalWrite(buzzer, HIGH);
+    digitalWrite(led, HIGH);
+    delay(300);
+    digitalWrite(buzzer, LOW);
+    digitalWrite(led, LOW);
+   
+    digitalWrite(buzzer, HIGH);
+    delay(300);
+    digitalWrite(buzzer, LOW);
+    delay(200);
+    digitalWrite(buzzer, HIGH);
+    digitalWrite(led, HIGH);
+    delay(300);
+    digitalWrite(buzzer, LOW);
+    digitalWrite(led, LOW);
+    delay(200);
+    digitalWrite(buzzer, HIGH);
+    delay(300);
+    digitalWrite(buzzer, LOW);
+  }
+
+  /* Get a new sensor event */ 
+  sensors_event_t event;
+  bmp.getEvent(&event);
+ 
+  /* Display the results (barometric pressure is measure in hPa) */
+  if (event.pressure)
+  {
+    /* Display atmospheric pressue in hPa */
+    Serial.print("Pressure:    ");
+    Serial.print(event.pressure);
+    Serial.println(" hPa");
+    
+    /* Calculating altitude with reasonable accuracy requires pressure    *
+     * sea level pressure for your position at the moment the data is     *
+     * converted, as well as the ambient temperature in degress           *
+     * celcius.  If you don't have these values, a 'generic' value of     *
+     * 1013.25 hPa can be used (defined as SENSORS_PRESSURE_SEALEVELHPA   *
+     * in sensors.h), but this isn't ideal and will give variable         *
+     * results from one day to the next.                                  *
+     *                                                                    *
+     * You can usually find the current SLP value by looking at weather   *
+     * websites or from environmental information centers near any major  *
+     * airport.                                                           *
+     *                                                                    *
+     * For example, for Paris, France you can check the current mean      *
+     * pressure and sea level at: http://bit.ly/16Au8ol                   */
+     
+    /* First we get the current temperature from the BMP085 */
+    float temperature;
+    bmp.getTemperature(&temperature);
+    Serial.print("Temperature: ");
+    Serial.print(temperature);
+    Serial.println(" C");
+
+    /* Then convert the atmospheric pressure, and SLP to altitude         */
+    /* Update this next line with the current SLP for better results      */
+    float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
+    Serial.print("Altitude:    "); 
+    Serial.print(bmp.pressureToAltitude(seaLevelPressure,
+                                        event.pressure)); 
+    Serial.println(" m");
+    Serial.println("");
+  }
+  else
+  {
+    Serial.println("Sensor error");
+  }
+delay (2000);
+}
